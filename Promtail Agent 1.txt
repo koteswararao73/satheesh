@@ -1,0 +1,75 @@
+Promtail Agent
+-----------------
+Step:1 
+
+curl -O -L "https://github.com/grafana/loki/releases/download/v2.4.1/promtail-linux-amd64.zip"
+
+Step:2 Once the file is downloaded extract it to /usr/local/bin
+
+unzip promtail-linux-amd64.zip
+sudo mv promtail-linux-amd64 /usr/local/bin/promtail
+
+promtail --version
+
+
+Step:3 Create a YAML configuration file for Promtail in the /usr/local/bin directory
+
+sudo vim /etc/promtail-local-config.yaml
+-----------------------------------------------------
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /data/loki/positions.yaml
+
+clients:
+  - url: http://lokipublicip:3100/loki/api/v1/push
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
+------------------------------------------------------
+ 
+Step:4 Create a service for Promtail
+
+sudo vim /etc/systemd/system/promtail.service
+
+----------------------------------------------------------------
+[Unit]
+Description=Promtail service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/promtail -config.file /etc/promtail-local-config.yaml
+
+[Install]
+WantedBy=multi-user.target
+-------------------------------------------------------------------
+Step:5 Reload and start Promtail service
+
+sudo systemctl daemon-reload
+sudo systemctl enable promtail.service
+sudo systemctl start promtail.service
+systemctl status promtail.service
+
+
+
+Configure loki in grafana
+
+Step:6 in Grafana Explore---->Data Source--->Loki
+Step:7
+
+Name: Loki
+URL: http://127.0.0.1:3100
+
+Save&Test.
+
+Step:8  Visualize Logs on Grafana with Loki
